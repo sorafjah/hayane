@@ -66,11 +66,11 @@
         .selection-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
+            gap: 12px;
             margin-top: 24px;
         }
         .selection-option {
-            padding: 16px;
+            padding: 16px 8px;
             border-radius: 12px;
             background-color: #F0F4F8;
             cursor: pointer;
@@ -88,6 +88,7 @@
             border: 1px solid #ccc;
             text-align: center;
             width: 100%;
+            box-sizing: border-box; /* Add this for correct width calculation */
         }
         #currentMonthYear {
              font-family: 'M PLUS Rounded 1c', sans-serif;
@@ -314,21 +315,20 @@
             }
         });
 
-        // オプションのクリックイベント（現在時刻設定）と長押しイベント（手動入力準備）
+        // オプションのクリックイベント（現在時刻設定）と長押しイベント（時刻設定変更）
         Object.keys(options).forEach(key => {
             const optionEl = options[key];
             let pressTimer = null;
             let isLongPress = false;
 
             const handlePressStart = (e) => {
-                // タッチデバイスでのデフォルト動作（スクロールなど）を防止
+                // preventDefaultのためにpassive: falseを後で指定
                 if (e.type === 'touchstart') {
                     e.preventDefault();
                 }
                 isLongPress = false; // フラグをリセット
                 pressTimer = setTimeout(() => {
                     isLongPress = true; // 長押しと判定
-                    // 長押しのアクションを実行
                     const presetName = optionEl.querySelector('p').textContent.split('\n')[0];
                     const newTime = prompt(`「${presetName}」の新しい時刻を入力してください (HH:MM):`, timePresets[key]);
 
@@ -337,21 +337,15 @@
                         saveTimePresets();
                         updatePresetDisplay();
                     } else if (newTime !== null) {
-                        // 無効な形式の場合、コンソールにログを出力します。(alertは使用不可)
                         console.error("無効な時刻フォーマットです。HH:MM形式で入力してください。");
                     }
                 }, 500); // 500ミリ秒で長押しと判断
             };
 
             const handlePressEnd = () => {
-                // タイマーをクリア
                 clearTimeout(pressTimer);
-            };
-
-            const handleClick = () => {
-                // 長押しでなかった場合のみ、クリックのアクションを実行
                 if (!isLongPress) {
-                    // クリックのアクションを実行
+                    // 長押しでなければクリック処理
                     selectOption(key);
                     const now = new Date();
                     const hours = String(now.getHours()).padStart(2, '0');
@@ -359,15 +353,15 @@
                     timeInput.value = `${hours}:${minutes}`;
                 }
             };
-            
+
             // イベントリスナーを設定
             optionEl.addEventListener('mousedown', handlePressStart);
             optionEl.addEventListener('mouseup', handlePressEnd);
-            optionEl.addEventListener('mouseleave', handlePressEnd); // ボタンからカーソルが離れたらキャンセル
-            optionEl.addEventListener('click', handleClick);
+            optionEl.addEventListener('mouseleave', () => clearTimeout(pressTimer)); // 範囲外に出たらタイマー解除
 
-            optionEl.addEventListener('touchstart', handlePressStart);
+            optionEl.addEventListener('touchstart', handlePressStart, { passive: false });
             optionEl.addEventListener('touchend', handlePressEnd);
+            optionEl.addEventListener('touchcancel', () => clearTimeout(pressTimer)); // タッチキャンセル
         });
 
         // 初期描画
@@ -376,6 +370,8 @@
     </script>
 </body>
 </html>
+
+
 
 
 
