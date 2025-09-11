@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>睡眠記録</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=M+PLUS+Rounded+1c:wght@700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F4FF; /* 薄いラベンダー */
+        }
+        .container {
+            max-width: 640px;
+            margin: auto;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+        .day-cell {
+            padding: 8px 4px;
+            height: 60px;
+            background-color: #FFFFFF;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+        }
+        .day-cell:hover {
+            transform: translateY(-2px);
+        }
+        .today {
+            border: 2px solid #9A66C7; /* 今日を強調 */
+        }
+        .icon {
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: #FFFFFF;
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .selection-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-top: 24px;
+        }
+        .selection-option {
+            padding: 16px;
+            border-radius: 12px;
+            background-color: #F0F4F8;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+        }
+        .selection-option.selected {
+            background-color: #D3BFF9; /* 選択時の色 */
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .time-input {
+            margin-top: 24px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            text-align: center;
+            width: 100%;
+        }
+        #currentMonthYear {
+             font-family: 'M PLUS Rounded 1c', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-[#EAF2F8] min-h-screen p-4 flex flex-col items-center">
+    <div class="container mt-8">
+        <!-- カレンダーナビゲーション -->
+        <div class="flex justify-between items-center my-4">
+            <button id="prevMonth" class="text-[#FADBD8] rounded-md w-8 h-8 flex items-center justify-center text-2xl transition-transform transform hover:scale-110">&#9664;</button>
+            <h2 id="currentMonthYear" class="text-xl font-semibold text-[#7A5A9A]"></h2>
+            <button id="nextMonth" class="text-[#FADBD8] rounded-md w-8 h-8 flex items-center justify-center text-2xl transition-transform transform hover:scale-110">&#9654;</button>
+        </div>
+
+        <!-- 曜日ヘッダー -->
+        <div class="calendar-grid text-center font-semibold text-sm text-[#9A66C7]">
+            <div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
+        </div>
+
+        <!-- カレンダーグリッド -->
+        <div id="calendar" class="calendar-grid mt-2"></div>
+    </div>
+
+    <!-- 記録入力モーダル -->
+    <div id="recordModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 id="modalDate" class="text-2xl font-bold text-[#7A5A9A]"></h3>
+            <p class="text-sm text-gray-500 mt-1">就寝時間を記録しましょう</p>
+
+            <div class="selection-grid">
+                <!-- 早寝 -->
+                <div id="early" class="selection-option">
+                    <span class="icon">⭐</span>
+                    <p class="mt-2 text-[#7A5A9A]">はやね<br><span class="text-xs text-gray-500">〜<span id="earlyTimeDisplay"></span></span></p>
+                </div>
+                <!-- まあまあ -->
+                <div id="okay" class="selection-option">
+                    <span class="icon">🌵</span>
+                    <p class="mt-2 text-[#7A5A9A]">まあまあ<br><span class="text-xs text-gray-500">〜<span id="okayTimeDisplay"></span></span></p>
+                </div>
+                <!-- よふかし -->
+                <div id="late" class="selection-option">
+                    <span class="icon">⚠️</span>
+                    <p class="mt-2 text-[#7A5A9A]">よふかし<br><span class="text-xs text-gray-500"><span id="lateTimeDisplay"></span>〜</span></p>
+                </div>
+            </div>
+
+            <input type="time" id="sleepTime" class="time-input text-lg font-mono">
+            
+            <div class="flex justify-around mt-6">
+                <button id="saveBtn" class="bg-[#D3BFF9] text-[#7A5A9A] px-6 py-2 rounded-full font-bold shadow-md transition-transform transform hover:scale-105 w-28">保存</button>
+                <button id="closeBtn" class="bg-[#FADBD8] text-[#7A5A9A] px-6 py-2 rounded-full font-bold shadow-md transition-transform transform hover:scale-105 w-28">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 日付と記録のデータを管理するオブジェクト
+        let currentMonth = new Date();
+        let selectedDate = null;
+        let selectedStatus = null;
+        let recordData = JSON.parse(localStorage.getItem('sleepRecords')) || {};
+        let timePresets = JSON.parse(localStorage.getItem('sleepTimePresets')) || {
+            early: '23:10',
+            okay: '00:10',
+            late: '01:00'
+        };
+
+        // DOM要素の取得
+        const calendarEl = document.getElementById('calendar');
+        const monthYearEl = document.getElementById('currentMonthYear');
+        const prevBtn = document.getElementById('prevMonth');
+        const nextBtn = document.getElementById('nextMonth');
+        const modal = document.getElementById('recordModal');
+        const modalDateEl = document.getElementById('modalDate');
+        const saveBtn = document.getElementById('saveBtn');
+        const closeBtn = document.getElementById('closeBtn');
+        const timeInput = document.getElementById('sleepTime');
+        const options = {
+            early: document.getElementById('early'),
+            okay: document.getElementById('okay'),
+            late: document.getElementById('late')
+        };
+        const earlyTimeDisplay = document.getElementById('earlyTimeDisplay');
+        const okayTimeDisplay = document.getElementById('okayTimeDisplay');
+        const lateTimeDisplay = document.getElementById('lateTimeDisplay');
+        const statusMap = {
+            early: '⭐',
+            okay: '🌵',
+            late: '⚠️'
+        };
+
+        // ローカルストレージにデータを保存
+        function saveRecords() {
+            localStorage.setItem('sleepRecords', JSON.stringify(recordData));
+        }
+
+        function saveTimePresets() {
+            localStorage.setItem('sleepTimePresets', JSON.stringify(timePresets));
+        }
+
+        function updatePresetDisplay() {
+            earlyTimeDisplay.textContent = timePresets.early;
+            okayTimeDisplay.textContent = timePresets.okay;
+            lateTimeDisplay.textContent = timePresets.late;
+        }
+
+        // カレンダーの表示を更新
+        function renderCalendar() {
+            monthYearEl.textContent = `${currentMonth.getFullYear()}年${currentMonth.getMonth() + 1}月`;
+            calendarEl.innerHTML = '';
+
+            const today = new Date();
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+
+            // 前月の空白セルを埋める
+            for (let i = 0; i < firstDay.getDay(); i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'day-cell bg-gray-100 opacity-50';
+                calendarEl.appendChild(emptyCell);
+            }
+
+            // 今月の日付セルを生成
+            for (let i = 1; i <= lastDay.getDate(); i++) {
+                const date = new Date(year, month, i);
+                const dayString = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                
+                const cell = document.createElement('div');
+                cell.className = 'day-cell relative cursor-pointer';
+                if (date.toDateString() === today.toDateString()) {
+                    cell.classList.add('today');
+                }
+                cell.dataset.date = dayString;
+
+                const dayNumber = document.createElement('div');
+                dayNumber.textContent = i;
+                dayNumber.className = 'absolute top-1 left-2 text-sm font-semibold text-gray-600';
+                cell.appendChild(dayNumber);
+
+                if (recordData[dayString]) {
+                    const status = recordData[dayString].status;
+                    const iconEl = document.createElement('div');
+                    iconEl.className = 'icon';
+                    iconEl.textContent = statusMap[status];
+                    cell.appendChild(iconEl);
+                }
+
+                cell.addEventListener('click', () => {
+                    selectedDate = dayString;
+                    modalDateEl.textContent = `${year}年${month + 1}月${i}日`;
+                    
+                    if (recordData[selectedDate]) {
+                        const { status, time } = recordData[selectedDate];
+                        selectOption(status);
+                        timeInput.value = time;
+                    } else {
+                        resetModal();
+                    }
+                    
+                    modal.classList.remove('hidden');
+                });
+                calendarEl.appendChild(cell);
+            }
+        }
+
+        // モーダルをリセット
+        function resetModal() {
+            selectedStatus = null;
+            timeInput.value = '';
+            Object.values(options).forEach(el => el.classList.remove('selected'));
+        }
+
+        // オプションを選択状態にする
+        function selectOption(status) {
+            selectedStatus = status;
+            Object.keys(options).forEach(key => {
+                if (key === status) {
+                    options[key].classList.add('selected');
+                } else {
+                    options[key].classList.remove('selected');
+                }
+            });
+        }
+
+        // イベントリスナー設定
+        prevBtn.addEventListener('click', () => {
+            currentMonth.setMonth(currentMonth.getMonth() - 1);
+            renderCalendar();
+        });
+
+        nextBtn.addEventListener('click', () => {
+            currentMonth.setMonth(currentMonth.getMonth() + 1);
+            renderCalendar();
+        });
+
+        closeBtn.addEventListener('click', () => {
+            modal.classList.add('hidden');
+        });
+
+        saveBtn.addEventListener('click', () => {
+            if (selectedDate && selectedStatus && timeInput.value) {
+                recordData[selectedDate] = {
+                    status: selectedStatus,
+                    time: timeInput.value
+                };
+                saveRecords();
+                modal.classList.add('hidden');
+                renderCalendar();
+            } else {
+                const existingError = modal.querySelector('.error-message');
+                if (existingError) return;
+
+                const errorMessage = document.createElement('div');
+                errorMessage.textContent = '記録内容が不完全です。';
+                errorMessage.className = 'text-red-500 mt-4 error-message';
+                modal.querySelector('.modal-content').appendChild(errorMessage);
+                setTimeout(() => {
+                    errorMessage.remove();
+                }, 3000);
+            }
+        });
+
+        // オプションのクリックイベント（現在時刻設定）と長押しイベント（手動入力準備）
+        Object.keys(options).forEach(key => {
+            const optionEl = options[key];
+            let pressTimer = null;
+            let isLongPress = false;
+
+            const handlePressStart = (e) => {
+                // タッチデバイスでのデフォルト動作（スクロールなど）を防止
+                if (e.type === 'touchstart') {
+                    e.preventDefault();
+                }
+                isLongPress = false; // フラグをリセット
+                pressTimer = setTimeout(() => {
+                    isLongPress = true; // 長押しと判定
+                    // 長押しのアクションを実行
+                    const presetName = optionEl.querySelector('p').textContent.split('\n')[0];
+                    const newTime = prompt(`「${presetName}」の新しい時刻を入力してください (HH:MM):`, timePresets[key]);
+
+                    if (newTime && /^\d{2}:\d{2}$/.test(newTime)) {
+                        timePresets[key] = newTime;
+                        saveTimePresets();
+                        updatePresetDisplay();
+                    } else if (newTime !== null) {
+                        // 無効な形式の場合、コンソールにログを出力します。(alertは使用不可)
+                        console.error("無効な時刻フォーマットです。HH:MM形式で入力してください。");
+                    }
+                }, 500); // 500ミリ秒で長押しと判断
+            };
+
+            const handlePressEnd = () => {
+                // タイマーをクリア
+                clearTimeout(pressTimer);
+            };
+
+            const handleClick = () => {
+                // 長押しでなかった場合のみ、クリックのアクションを実行
+                if (!isLongPress) {
+                    // クリックのアクションを実行
+                    selectOption(key);
+                    const now = new Date();
+                    const hours = String(now.getHours()).padStart(2, '0');
+                    const minutes = String(now.getMinutes()).padStart(2, '0');
+                    timeInput.value = `${hours}:${minutes}`;
+                }
+            };
+            
+            // イベントリスナーを設定
+            optionEl.addEventListener('mousedown', handlePressStart);
+            optionEl.addEventListener('mouseup', handlePressEnd);
+            optionEl.addEventListener('mouseleave', handlePressEnd); // ボタンからカーソルが離れたらキャンセル
+            optionEl.addEventListener('click', handleClick);
+
+            optionEl.addEventListener('touchstart', handlePressStart);
+            optionEl.addEventListener('touchend', handlePressEnd);
+        });
+
+        // 初期描画
+        renderCalendar();
+        updatePresetDisplay();
+    </script>
+</body>
+</html>
+
+
+
