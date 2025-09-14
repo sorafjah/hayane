@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-180x180.png">
+    
     <title>はやねしよう</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -97,40 +102,33 @@
 </head>
 <body class="bg-[#EAF2F8] min-h-screen p-4 flex flex-col items-center">
     <div class="container mt-8">
-        <!-- カレンダーナビゲーション -->
         <div class="flex justify-between items-center my-4">
             <button id="prevMonth" class="text-[#FADBD8] rounded-md w-8 h-8 flex items-center justify-center text-2xl transition-transform transform hover:scale-110">&#9664;</button>
             <h2 id="currentMonthYear" class="text-xl font-semibold text-[#7A5A9A]"></h2>
             <button id="nextMonth" class="text-[#FADBD8] rounded-md w-8 h-8 flex items-center justify-center text-2xl transition-transform transform hover:scale-110">&#9654;</button>
         </div>
 
-        <!-- 曜日ヘッダー -->
         <div class="calendar-grid text-center font-semibold text-sm text-[#9A66C7]">
             <div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
         </div>
 
-        <!-- カレンダーグリッド -->
         <div id="calendar" class="calendar-grid mt-2"></div>
     </div>
 
-    <!-- 記録入力モーダル -->
     <div id="recordModal" class="modal-overlay hidden">
         <div class="modal-content">
             <h3 id="modalDate" class="text-2xl font-bold text-[#7A5A9A]"></h3>
             <p class="text-sm text-gray-500 mt-1">就寝時間を記録しましょう</p>
 
             <div class="selection-grid">
-                <!-- 早寝 -->
                 <div id="early" class="selection-option">
                     <span class="icon">⭐</span>
                     <p class="mt-2 text-[#7A5A9A]">はやね<br><span class="text-xs text-gray-500">〜<span id="earlyTimeDisplay"></span></span></p>
                 </div>
-                <!-- まあまあ -->
                 <div id="okay" class="selection-option">
                     <span class="icon">🌵</span>
                     <p class="mt-2 text-[#7A5A9A]">まあまあ<br><span class="text-xs text-gray-500">〜<span id="okayTimeDisplay"></span></span></p>
                 </div>
-                <!-- よふかし -->
                 <div id="late" class="selection-option">
                     <span class="icon">⚠️</span>
                     <p class="mt-2 text-[#7A5A9A]">よふかし<br><span class="text-xs text-gray-500"><span id="lateTimeDisplay"></span>〜</span></p>
