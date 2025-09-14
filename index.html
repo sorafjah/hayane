@@ -27,7 +27,7 @@
             border-radius: 12px;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: center; /* 修正箇所：垂直方向の中央揃え */
             align-items: center;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             transition: transform 0.2s;
@@ -97,40 +97,33 @@
 </head>
 <body class="bg-[#EAF2F8] min-h-screen p-4 flex flex-col items-center">
     <div class="container mt-8">
-        <!-- カレンダーナビゲーション -->
         <div class="flex justify-between items-center my-4">
             <button id="prevMonth" class="text-[#FADBD8] rounded-md w-8 h-8 flex items-center justify-center text-2xl transition-transform transform hover:scale-110">&#9664;</button>
             <h2 id="currentMonthYear" class="text-xl font-semibold text-[#7A5A9A]"></h2>
             <button id="nextMonth" class="text-[#FADBD8] rounded-md w-8 h-8 flex items-center justify-center text-2xl transition-transform transform hover:scale-110">&#9654;</button>
         </div>
 
-        <!-- 曜日ヘッダー -->
         <div class="calendar-grid text-center font-semibold text-sm text-[#9A66C7]">
             <div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
         </div>
 
-        <!-- カレンダーグリッド -->
         <div id="calendar" class="calendar-grid mt-2"></div>
     </div>
 
-    <!-- 記録入力モーダル -->
     <div id="recordModal" class="modal-overlay hidden">
         <div class="modal-content">
             <h3 id="modalDate" class="text-2xl font-bold text-[#7A5A9A]"></h3>
             <p class="text-sm text-gray-500 mt-1">就寝時間を記録しましょう</p>
 
             <div class="selection-grid">
-                <!-- 早寝 -->
                 <div id="early" class="selection-option">
                     <span class="icon">⭐</span>
                     <p class="mt-2 text-[#7A5A9A]">はやね<br><span class="text-xs text-gray-500">〜<span id="earlyTimeDisplay"></span></span></p>
                 </div>
-                <!-- まあまあ -->
                 <div id="okay" class="selection-option">
                     <span class="icon">🌵</span>
                     <p class="mt-2 text-[#7A5A9A]">まあまあ<br><span class="text-xs text-gray-500">〜<span id="okayTimeDisplay"></span></span></p>
                 </div>
-                <!-- よふかし -->
                 <div id="late" class="selection-option">
                     <span class="icon">⚠️</span>
                     <p class="mt-2 text-[#7A5A9A]">よふかし<br><span class="text-xs text-gray-500"><span id="lateTimeDisplay"></span>〜</span></p>
@@ -229,7 +222,7 @@
 
                 const dayNumber = document.createElement('div');
                 dayNumber.textContent = i;
-                dayNumber.className = 'absolute top-1 left-2 text-sm font-semibold text-gray-600';
+                dayNumber.className = 'absolute top-1 right-2 text-sm font-semibold text-gray-600'; // 修正箇所：数字を右上に
                 cell.appendChild(dayNumber);
 
                 if (recordData[dayString]) {
@@ -302,76 +295,4 @@
                 modal.classList.add('hidden');
                 renderCalendar();
             } else {
-                const existingError = modal.querySelector('.error-message');
-                if (existingError) return;
-
-                const errorMessage = document.createElement('div');
-                errorMessage.textContent = '記録内容が不完全です。';
-                errorMessage.className = 'text-red-500 mt-4 error-message';
-                modal.querySelector('.modal-content').appendChild(errorMessage);
-                setTimeout(() => {
-                    errorMessage.remove();
-                }, 3000);
-            }
-        });
-
-        // オプションのクリックイベント（現在時刻設定）と長押しイベント（時刻設定変更）
-        Object.keys(options).forEach(key => {
-            const optionEl = options[key];
-            let pressTimer = null;
-            let isLongPress = false;
-
-            const handlePressStart = (e) => {
-                // preventDefaultのためにpassive: falseを後で指定
-                if (e.type === 'touchstart') {
-                    e.preventDefault();
-                }
-                isLongPress = false; // フラグをリセット
-                pressTimer = setTimeout(() => {
-                    isLongPress = true; // 長押しと判定
-                    const presetName = optionEl.querySelector('p').textContent.split('\n')[0];
-                    const newTime = prompt(`「${presetName}」の新しい時刻を入力してください (HH:MM):`, timePresets[key]);
-
-                    if (newTime && /^\d{2}:\d{2}$/.test(newTime)) {
-                        timePresets[key] = newTime;
-                        saveTimePresets();
-                        updatePresetDisplay();
-                    } else if (newTime !== null) {
-                        console.error("無効な時刻フォーマットです。HH:MM形式で入力してください。");
-                    }
-                }, 500); // 500ミリ秒で長押しと判断
-            };
-
-            const handlePressEnd = () => {
-                clearTimeout(pressTimer);
-                if (!isLongPress) {
-                    // 長押しでなければクリック処理
-                    selectOption(key);
-                    const now = new Date();
-                    const hours = String(now.getHours()).padStart(2, '0');
-                    const minutes = String(now.getMinutes()).padStart(2, '0');
-                    timeInput.value = `${hours}:${minutes}`;
-                }
-            };
-
-            // イベントリスナーを設定
-            optionEl.addEventListener('mousedown', handlePressStart);
-            optionEl.addEventListener('mouseup', handlePressEnd);
-            optionEl.addEventListener('mouseleave', () => clearTimeout(pressTimer)); // 範囲外に出たらタイマー解除
-
-            optionEl.addEventListener('touchstart', handlePressStart, { passive: false });
-            optionEl.addEventListener('touchend', handlePressEnd);
-            optionEl.addEventListener('touchcancel', () => clearTimeout(pressTimer)); // タッチキャンセル
-        });
-
-        // 初期描画
-        renderCalendar();
-        updatePresetDisplay();
-    </script>
-</body>
-</html>
-
-
-
-
-
+                const existingError = modal.querySelector('.error
